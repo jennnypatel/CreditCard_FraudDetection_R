@@ -6,23 +6,25 @@ This project focuses on detecting fraudulent credit card transactions using mach
 ## 📁 Project Structure
 
 
+```text
 CreditCard_FraudDetection_R/
 ├── data/
-│ └── creditcard.csv # Dataset from Kaggle
+│   └── creditcard.csv               # Dataset from Kaggle
 ├── R/
-│ ├── install_packages.R # Installs required libraries
-│ ├── load_data.R # CSV file (Data load)
-│ ├── preprocess_data.R # Data cleaning and preprocessing
-│ ├── train_model.R # Model training
-│ ├── evaluate_model.R # Evaluates model performance
-│ └── run_full_pipeline.R # Executes the entire pipeline
+│   ├── install_packages.R           # Installs required libraries
+│   ├── load_data.R                  # CSV file (Data load)
+│   ├── preprocess_data.R            # Data cleaning and preprocessing
+│   ├── train_model.R                # Model training
+│   ├── evaluate_model.R             # Evaluates model performance
+│   └── run_full_pipeline.R          # Executes the entire pipeline
 ├── report/
-│ ├── Credit_Card_Fraud_Detection_Report.Rmd # RMarkdown report
-│ ├── aus_score.csv # AUC summary table
-│ ├── model_evaluation.txt # Detailed confusion matrices
-│ └── trained_models.RData # Saved trained models
+│   ├── Credit_Card_Fraud_Detection_Report.Rmd  # RMarkdown report
+│   ├── aus_score.csv                # AUC summary table
+│   ├── model_evaluation.txt         # Detailed confusion matrices
+│   └── trained_models.RData         # Saved trained models
 ├── README.md
 
+```
 
 ---
 
