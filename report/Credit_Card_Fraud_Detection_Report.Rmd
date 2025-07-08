@@ -1,0 +1,251 @@
+---
+title: "Credit Card Fraud Detection Project Report"
+author: "Jeny Patel"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(data.table)
+library(caret)
+library(ROSE)
+library(rpart)
+library(nnet)
+library(gbm)
+library(pROC)
+library(dplyr)
+library(ggplot2)
+library(PRROC)
+```
+
+# Introduction
+
+This project aims to detect fraudulent credit card transactions using machine learning models trained on a publicly available dataset from Kaggle. The dataset contains anonymized features and a highly imbalanced target variable
+
+# Dataset
+
+The dataset contains transactions made by credit cards in September 2013 by European cardholders. It includes anonymized features from PCA transformations (V1 to V28), transaction amount, and the target variable `Class` (1 = Fraud, 0 = Non-fraud).
+
+
+```{r load-data}
+# Load dataset from relative path
+data <- fread("../data/creditcard.csv")
+
+# Display dimensions and class distribution
+dim(data)
+table(data$Class)
+```
+
+# Data Preprocessing
+
+We first scaled the Amount feature and removed the Time column as it is not informative. The dataset was split into 80% training and 20% testing sets. Because of class imbalance, the training set was balanced using the ROSE technique.
+
+```{r preprocessing}
+set.seed(123)
+
+# Scale Amount and remove Time
+data$Amount <- scale(data$Amount)
+data <- data[, -"Time"]
+
+# Split data into train and test sets
+splitIndex <- createDataPartition(data$Class, p = 0.8, list = FALSE)
+train <- data[splitIndex, ]
+test <- data[-splitIndex, ]
+
+# Balance training data using ROSE
+train_balanced <- ROSE(Class ~ ., data = train, seed = 123)$data
+table(train_balanced$Class)
+
+# Visualize class distribution before and after balancing
+library(gridExtra)
+
+p1 <- ggplot(data, aes(x = factor(Class))) +
+  geom_bar(fill = "steelblue") +
+  ggtitle("Original Class Distribution") +
+  xlab("Class") + ylab("Count") +
+  theme_minimal()
+
+p2 <- ggplot(train_balanced, aes(x = factor(Class))) +
+  geom_bar(fill = "darkorange") +
+  ggtitle("Balanced Training Set Distribution (ROSE)") +
+  xlab("Class") + ylab("Count") +
+  theme_minimal()
+
+grid.arrange(p1, p2, ncol = 2)
+
+```
+
+# Model Training
+
+We trained four models on the balanced training data:
+
+- Logistic Regression
+- Decision Tree
+- Artificial Neural Network (ANN)
+- Gradient Boosting Machine (GBM)
+
+```{r model-training}
+# Logistic Regression
+logistic_model <- glm(Class ~ ., data = train_balanced, family = binomial())
+
+# Decision Tree
+tree_model <- rpart(Class ~ ., data = train_balanced, method = "class")
+
+# Artificial Neural Network
+ann_model <- nnet(Class ~ ., data = train_balanced, size = 5, linout = FALSE, trace = FALSE, maxit = 200)
+
+# Gradient Boosting Machine
+gbm_model <- gbm(Class ~ ., distribution = "bernoulli", data = train_balanced,
+                 n.trees = 300, interaction.depth = 3, shrinkage = 0.01, verbose = FALSE)
+
+# Feature importance plot from GBM
+gbm_imp <- summary(gbm_model, n.trees = 300, plotit = FALSE)
+gbm_imp_df <- data.frame(Feature = gbm_imp$var, Importance = gbm_imp$rel.inf)
+
+ggplot(gbm_imp_df, aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_col(fill = "darkgreen") +
+  coord_flip() +
+  ggtitle("Feature Importance - GBM Model") +
+  xlab("Features") +
+  ylab("Relative Importance") +
+  theme_minimal()
+
+```
+
+# Model Evaluation
+
+We define a helper function to evaluate models by producing confusion matrices and AUC scores on the test data.
+
+```{r evaluation}
+evaluate_model <- function(model, test_data, model_type) {
+  if (model_type == "logistic") {
+    probs <- predict(model, newdata = test_data, type = "response")
+    preds <- ifelse(probs > 0.5, 1, 0)
+  } else if (model_type == "tree") {
+    preds <- predict(model, newdata = test_data, type = "class")
+    probs <- predict(model, newdata = test_data)[, 2]
+  } else if (model_type == "ann") {
+    probs <- predict(model, newdata = test_data, type = "raw")
+    preds <- ifelse(probs > 0.5, 1, 0)
+  } else if (model_type == "gbm") {
+    probs <- predict(model, newdata = test_data, n.trees = 300)
+    preds <- ifelse(probs > 0.5, 1, 0)
+  }
+
+  cm <- confusionMatrix(factor(preds), factor(test_data$Class), positive = "1")
+  auc_score <- auc(test_data$Class, as.numeric(probs))
+  list(confusion_matrix = cm, auc = auc_score)
+}
+
+# Evaluate all models
+logistic_eval <- evaluate_model(logistic_model, test, "logistic")
+tree_eval <- evaluate_model(tree_model, test, "tree")
+ann_eval <- evaluate_model(ann_model, test, "ann")
+gbm_eval <- evaluate_model(gbm_model, test, "gbm")
+
+# Show confusion matrices
+logistic_eval$confusion_matrix
+tree_eval$confusion_matrix
+ann_eval$confusion_matrix
+gbm_eval$confusion_matrix
+
+# Aggregate AUC scores
+auc_scores <- data.frame(
+  Model = c("Logistic Regression", "Decision Tree", "ANN", "GBM"),
+  AUC = c(logistic_eval$auc, tree_eval$auc, ann_eval$auc, gbm_eval$auc)
+)
+
+auc_scores
+
+library(cowplot)
+library(reshape2)
+
+plot_cm_heatmap <- function(cm, title) {
+  df <- as.data.frame(cm$table)
+  colnames(df) <- c("Prediction", "Reference", "Freq")
+  
+  ggplot(df, aes(x = Reference, y = Prediction, fill = Freq)) +
+    geom_tile() +
+    geom_text(aes(label = Freq), color = "white", size = 6) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    labs(title = title) +
+    theme_minimal()
+}
+
+p_log <- plot_cm_heatmap(logistic_eval$confusion_matrix, "Logistic Regression")
+p_tree <- plot_cm_heatmap(tree_eval$confusion_matrix, "Decision Tree")
+p_ann <- plot_cm_heatmap(ann_eval$confusion_matrix, "ANN")
+p_gbm <- plot_cm_heatmap(gbm_eval$confusion_matrix, "GBM")
+
+plot_grid(p_log, p_tree, p_ann, p_gbm, ncol = 2)
+
+```
+The AUC scores show Logistic Regression performed best (AUC ~0.98), closely followed by ANN. Decision Tree had the lowest performance among these models.
+
+
+# ROC Curves
+The following ROC curves visualize each model's performance on the test set.
+
+```{r roc-curves, fig.width=7, fig.height=5}
+roc_logistic <- roc(test$Class, predict(logistic_model, newdata = test, type = "response"))
+roc_tree <- roc(test$Class, predict(tree_model, newdata = test)[, 2])
+roc_ann <- roc(test$Class, predict(ann_model, newdata = test, type = "raw"))
+roc_gbm <- roc(test$Class, predict(gbm_model, newdata = test, n.trees = 300))
+
+plot(roc_logistic, col = "blue", main = "ROC Curves", lwd = 2)
+plot(roc_tree, col = "green", add = TRUE, lwd = 2)
+plot(roc_ann, col = "red", add = TRUE, lwd = 2)
+plot(roc_gbm, col = "purple", add = TRUE, lwd = 2)
+
+legend("bottomright", legend = c("Logistic Regression", "Decision Tree", "ANN", "GBM"),
+       col = c("blue", "green", "red", "purple"), lwd = 2)
+
+
+# Logistic Regression
+probs_logistic <- predict(logistic_model, newdata = test, type = "response")
+pr_logistic <- pr.curve(scores.class0 = probs_logistic[test$Class == 1],
+                       scores.class1 = probs_logistic[test$Class == 0], curve = TRUE)
+
+# Decision Tree (probabilities for class "1")
+probs_tree <- predict(tree_model, newdata = test)[, "1"]
+pr_tree <- pr.curve(scores.class0 = probs_tree[test$Class == 1],
+                    scores.class1 = probs_tree[test$Class == 0], curve = TRUE)
+
+# ANN
+probs_ann <- predict(ann_model, newdata = test, type = "raw")
+pr_ann <- pr.curve(scores.class0 = probs_ann[test$Class == 1],
+                   scores.class1 = probs_ann[test$Class == 0], curve = TRUE)
+
+# GBM
+probs_gbm <- predict(gbm_model, newdata = test, n.trees = 300, type = "response")
+pr_gbm <- pr.curve(scores.class0 = probs_gbm[test$Class == 1],
+                   scores.class1 = probs_gbm[test$Class == 0], curve = TRUE)
+
+# Plot all PR curves together
+plot(pr_logistic, col = "blue", main = "Precision-Recall Curves", lwd = 2)
+plot(pr_tree, col = "green", add = TRUE, lwd = 2)
+plot(pr_ann, col = "red", add = TRUE, lwd = 2)
+plot(pr_gbm, col = "purple", add = TRUE, lwd = 2)
+
+legend("bottomleft", legend = c("Logistic Regression", "Decision Tree", "ANN", "GBM"),
+       col = c("blue", "green", "red", "purple"), lwd = 2)
+
+
+```
+
+# Conclusion
+Logistic Regression and Artificial Neural Network models achieved the best balance between sensitivity and specificity with high AUC scores, demonstrating strong ability to detect fraudulent transactions.
+
+However, the dataset remains heavily imbalanced, and further improvements might be realized with techniques such as anomaly detection, ensemble methods, or cost-sensitive learning to better handle rare fraud cases in production settings.
+
+
+
+---
+
+

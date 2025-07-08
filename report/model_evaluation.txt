@@ -1,0 +1,129 @@
+📌 Logistic Regression:
+Confusion Matrix and Statistics
+
+          Reference
+Prediction     0     1
+         0 56229    17
+         1   625    90
+                                          
+               Accuracy : 0.9887          
+                 95% CI : (0.9878, 0.9896)
+    No Information Rate : 0.9981          
+    P-Value [Acc > NIR] : 1               
+                                          
+                  Kappa : 0.2164          
+                                          
+ Mcnemar's Test P-Value : <2e-16          
+                                          
+            Sensitivity : 0.9890          
+            Specificity : 0.8411          
+         Pos Pred Value : 0.9997          
+         Neg Pred Value : 0.1259          
+             Prevalence : 0.9981          
+         Detection Rate : 0.9871          
+   Detection Prevalence : 0.9874          
+      Balanced Accuracy : 0.9151          
+                                          
+       'Positive' Class : 0               
+                                          
+
+📌 Decision Tree:
+Confusion Matrix and Statistics
+
+          Reference
+Prediction     0     1
+         0 55477    18
+         1  1377    89
+                                          
+               Accuracy : 0.9755          
+                 95% CI : (0.9742, 0.9768)
+    No Information Rate : 0.9981          
+    P-Value [Acc > NIR] : 1               
+                                          
+                  Kappa : 0.11            
+                                          
+ Mcnemar's Test P-Value : <2e-16          
+                                          
+            Sensitivity : 0.97578         
+            Specificity : 0.83178         
+         Pos Pred Value : 0.99968         
+         Neg Pred Value : 0.06071         
+             Prevalence : 0.99812         
+         Detection Rate : 0.97395         
+   Detection Prevalence : 0.97426         
+      Balanced Accuracy : 0.90378         
+                                          
+       'Positive' Class : 0               
+                                          
+
+📌 ANN:
+Confusion Matrix and Statistics
+
+          Reference
+Prediction     0     1
+         0 56673    20
+         1   181    87
+                                          
+               Accuracy : 0.9965          
+                 95% CI : (0.9959, 0.9969)
+    No Information Rate : 0.9981          
+    P-Value [Acc > NIR] : 1               
+                                          
+                  Kappa : 0.4626          
+                                          
+ Mcnemar's Test P-Value : <2e-16          
+                                          
+            Sensitivity : 0.9968          
+            Specificity : 0.8131          
+         Pos Pred Value : 0.9996          
+         Neg Pred Value : 0.3246          
+             Prevalence : 0.9981          
+         Detection Rate : 0.9949          
+   Detection Prevalence : 0.9953          
+      Balanced Accuracy : 0.9050          
+                                          
+       'Positive' Class : 0               
+                                          
+
+📌 GBM:
+Confusion Matrix and Statistics
+
+          Reference
+Prediction     0     1
+         0 56608    19
+         1   246    88
+                                          
+               Accuracy : 0.9953          
+                 95% CI : (0.9948, 0.9959)
+    No Information Rate : 0.9981          
+    P-Value [Acc > NIR] : 1               
+                                          
+                  Kappa : 0.3974          
+                                          
+ Mcnemar's Test P-Value : <2e-16          
+                                          
+            Sensitivity : 0.9957          
+            Specificity : 0.8224          
+         Pos Pred Value : 0.9997          
+         Neg Pred Value : 0.2635          
+             Prevalence : 0.9981          
+         Detection Rate : 0.9938          
+   Detection Prevalence : 0.9941          
+      Balanced Accuracy : 0.9091          
+                                          
+       'Positive' Class : 0               
+                                          
+
+📊 AUC Scores:
+$logistic
+Area under the curve: 0.9823
+
+$tree
+Area under the curve: 0.9057
+
+$ann
+Area under the curve: 0.9586
+
+$gbm
+Area under the curve: 0.9484
+
