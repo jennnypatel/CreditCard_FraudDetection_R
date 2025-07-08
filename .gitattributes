@@ -1,2 +1,0 @@
-data/creditcard.csv filter=lfs diff=lfs merge=lfs -text
-report/trained_models.RData filter=lfs diff=lfs merge=lfs -text
