@@ -1,2 +1,3 @@
 data/creditcard.csv
 report/trained_models.RData
+venv/
